@@ -1,19 +1,21 @@
 package gui;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
 public class TransactionPage extends JFrame {
-    private JTextField categoryField, descriptionField, dateField, amountField;
+    private JTextField categoryField, descriptionField, amountField;
     private JButton depositButton, withdrawButton;
     private HomePage homePage;
+    private JTable transactionTable;
+    private DefaultTableModel tableModel;
 
     public TransactionPage(HomePage homePage) {
         this.homePage = homePage;
 
-        setTitle("Add Transaction");
+        setTitle("Transactions");
         setSize(800, 600);
         setLayout(new BorderLayout());
 
@@ -41,12 +43,12 @@ public class TransactionPage extends JFrame {
         leftPanel.setBorder(BorderFactory.createTitledBorder("Transaction History"));
 
         String[] columnNames = {"#", "Description", "Date", "Amount"};
-        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
-        JTable transactionTable = new JTable(tableModel);
+        tableModel = new DefaultTableModel(columnNames, 0);
+        transactionTable = new JTable(tableModel);
+        transactionTable.setDefaultRenderer(Object.class, new TransactionTableCellRenderer());
 
-        for (int i = 0; i < homePage.getTransactionList().size(); i++) {
-            tableModel.addRow(homePage.getTransactionList().get(i));
-        }
+        // Initial loading of transactions into the table
+        refreshTransactionTable(tableModel);
 
         JScrollPane scrollPane = new JScrollPane(transactionTable);
         leftPanel.add(scrollPane, BorderLayout.CENTER);
@@ -64,10 +66,6 @@ public class TransactionPage extends JFrame {
         rightPanel.add(new JLabel("Description:"));
         descriptionField = new JTextField();
         rightPanel.add(descriptionField);
-
-        rightPanel.add(new JLabel("Date (dd-mm-yyyy):"));
-        dateField = new JTextField("10-11-2024");  // Default date as placeholder
-        rightPanel.add(dateField);
 
         rightPanel.add(new JLabel("Amount:"));
         amountField = new JTextField();
@@ -87,7 +85,6 @@ public class TransactionPage extends JFrame {
     private void handleTransaction(boolean isDeposit) {
         String category = categoryField.getText();
         String description = descriptionField.getText();
-        String date = dateField.getText();
         double amount;
 
         try {
@@ -98,7 +95,7 @@ public class TransactionPage extends JFrame {
         }
 
         if (!isDeposit && amount > homePage.getBalance()) {
-            JOptionPane.showMessageDialog(this, "Insufficient funds for withdrawal.");
+            JOptionPane.showMessageDialog(this, "Insufficient funds for withdrawal.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -107,6 +104,35 @@ public class TransactionPage extends JFrame {
         homePage.addTransaction(transactionDescription, transactionAmount);
         JOptionPane.showMessageDialog(this, "Transaction added successfully!");
 
-        // No dispose here, just allow the user to return using Home button
+        // Clear the input fields
+        categoryField.setText("");
+        descriptionField.setText("");
+        amountField.setText("");
+
+        // Refresh the transaction table in the TransactionPage
+        refreshTransactionTable(tableModel);
+    }
+
+    // Refresh the transaction table
+    public void refreshTransactionTable(DefaultTableModel tableModel) {
+        tableModel.setRowCount(0); // Clear the table
+        for (String[] trans : homePage.getTransactionList()) {
+            tableModel.addRow(trans);
+        }
+        transactionTable.setDefaultRenderer(Object.class, new TransactionTableCellRenderer());
+    }
+
+    private class TransactionTableCellRenderer extends JLabel implements TableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText(value.toString());
+            setOpaque(true);
+            if (column == 3) { // Amount column
+                setForeground(value.toString().startsWith("₹(") ? Color.RED : Color.GREEN);
+            } else {
+                setForeground(table.getForeground());
+            }
+            return this;
+        }
     }
 }

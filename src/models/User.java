@@ -7,7 +7,7 @@ public class User {
     private String name, email, password, dob, phoneNumber, aadhaar, bank, accountType, branch, address;
     private double amount;
 
-    public User(String name, String email, String password, String dob, String phoneNumber, 
+    public User(String name, String email, String password, String dob, String phoneNumber,
                 String aadhaar, String bank, String accountType, String branch, String address, double amount) {
         this.name = name;
         this.email = email;

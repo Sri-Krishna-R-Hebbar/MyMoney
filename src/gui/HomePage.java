@@ -1,12 +1,14 @@
 package gui;
 
-import models.User;
 import models.UserDatabase;
-
+import models.User;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 public class HomePage extends JFrame {
@@ -14,6 +16,8 @@ public class HomePage extends JFrame {
     private double balance;
     private ArrayList<String[]> transactionList;
     private User user;
+    private JTable transactionTable;
+    private DefaultTableModel tableModel;
 
     public HomePage(User user) {
         this.user = user;
@@ -35,9 +39,11 @@ public class HomePage extends JFrame {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         navBar.add(titleLabel, BorderLayout.CENTER);
 
-        JButton transactionButton = new JButton("Transaction");
+        JButton transactionButton = new JButton("Transactions");
         transactionButton.setBackground(Color.LIGHT_GRAY);
-        transactionButton.addActionListener(e -> new TransactionPage(this).setVisible(true));
+        transactionButton.addActionListener(e -> {
+            new TransactionPage(this).setVisible(true);
+        });
         navBar.add(transactionButton, BorderLayout.WEST);
 
         JButton signOutButton = new JButton("Sign Out");
@@ -84,12 +90,12 @@ public class HomePage extends JFrame {
 
         // Table for previous transactions
         String[] columnNames = {"#", "Description", "Date", "Amount"};
-        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
-        JTable transactionTable = new JTable(tableModel);
+        tableModel = new DefaultTableModel(columnNames, 0);
+        transactionTable = new JTable(tableModel);
+        transactionTable.setDefaultRenderer(Object.class, new TransactionTableCellRenderer());
         
-        for (int i = 0; i < transactionList.size(); i++) {
-            tableModel.addRow(transactionList.get(i));
-        }
+        // Initial loading of transactions into the table
+        refreshTransactionTable(tableModel);
         
         JScrollPane scrollPane = new JScrollPane(transactionTable);
         scrollPane.setBorder(BorderFactory.createTitledBorder("Previous Transactions"));
@@ -105,18 +111,43 @@ public class HomePage extends JFrame {
         String[] transaction = {
             String.valueOf(transactionList.size() + 1),
             description,
-            "10-11-2024",  // Placeholder date
-            String.format("₹%.2f", amount)
+            LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")),
+            String.format(amount >= 0 ? "₹%.2f" : "₹(%.2f)", amount)
         };
-        transactionList.add(transaction);
+        transactionList.add(0, transaction);
+
+        // Refresh the table with the new transaction
+        refreshTransactionTable(tableModel);
+    }
+
+    // Refresh the transaction table
+    public void refreshTransactionTable(DefaultTableModel tableModel) {
+        tableModel.setRowCount(0); // Clear the table
+        for (String[] trans : transactionList) {
+            tableModel.addRow(trans);
+        }
+        transactionTable.setDefaultRenderer(Object.class, new TransactionTableCellRenderer());
     }
 
     public double getBalance() {
         return balance;
     }
     
-    public ArrayList<String []> getTransactionList() {
+    public ArrayList<String[]> getTransactionList() {
         return transactionList;
     }
 
+    private class TransactionTableCellRenderer extends JLabel implements TableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText(value.toString());
+            setOpaque(true);
+            if (column == 3) { // Amount column
+                setForeground(value.toString().startsWith("₹(") ? Color.RED : Color.GREEN);
+            } else {
+                setForeground(table.getForeground());
+            }
+            return this;
+        }
+    }
 }
