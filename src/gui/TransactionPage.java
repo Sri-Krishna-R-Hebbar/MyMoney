@@ -1,24 +1,55 @@
 package gui;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
-public class TransactionPage extends JFrame {
-    private JTextField categoryField, descriptionField, amountField;
-    private JButton depositButton, withdrawButton;
-    private HomePage homePage;
-    private JTable transactionTable;
-    private DefaultTableModel tableModel;
+// Interface for transaction operations
+interface TransactionOperations {
+    void handleTransaction(boolean isDeposit);
+    void refreshTransactionTable(DefaultTableModel tableModel);
+}
 
-    public TransactionPage(HomePage homePage) {
+// Abstract class defining shared functionality
+abstract class TransactionBasePage extends JFrame implements TransactionOperations {
+    protected JTextField categoryField, descriptionField, amountField;
+    protected JButton depositButton, withdrawButton;
+    protected HomePage homePage;
+    protected JTable transactionTable;
+    protected DefaultTableModel tableModel;
+
+    public TransactionBasePage(HomePage homePage) {
         this.homePage = homePage;
-
         setTitle("Transactions");
         setSize(800, 600);
         setLayout(new BorderLayout());
 
+        // Initialize UI elements in subclasses
+        initializeComponents();
+    }
+
+    // Abstract method to initialize UI elements
+    protected abstract void initializeComponents();
+    
+    // Method to clear input fields after transaction
+    protected void clearInputFields() {
+        categoryField.setText("");
+        descriptionField.setText("");
+        amountField.setText("");
+    }
+}
+
+public class TransactionPage extends TransactionBasePage {
+    
+    public TransactionPage(HomePage homePage) {
+        super(homePage);
+    }
+
+    // Implement the abstract method to set up UI
+    @Override
+    protected void initializeComponents() {
         // Top navigation bar
         JPanel navBar = new JPanel(new BorderLayout());
         navBar.setBackground(Color.BLACK);
@@ -82,7 +113,9 @@ public class TransactionPage extends JFrame {
         add(rightPanel, BorderLayout.CENTER);
     }
 
-    private void handleTransaction(boolean isDeposit) {
+    // Implement handleTransaction from TransactionOperations interface
+    @Override
+    public void handleTransaction(boolean isDeposit) {
         String category = categoryField.getText();
         String description = descriptionField.getText();
         double amount;
@@ -104,16 +137,12 @@ public class TransactionPage extends JFrame {
         homePage.addTransaction(transactionDescription, transactionAmount);
         JOptionPane.showMessageDialog(this, "Transaction added successfully!");
 
-        // Clear the input fields
-        categoryField.setText("");
-        descriptionField.setText("");
-        amountField.setText("");
-
-        // Refresh the transaction table in the TransactionPage
+        clearInputFields();
         refreshTransactionTable(tableModel);
     }
 
-    // Refresh the transaction table
+    // Implement refreshTransactionTable from TransactionOperations interface
+    @Override
     public void refreshTransactionTable(DefaultTableModel tableModel) {
         tableModel.setRowCount(0); // Clear the table
         for (String[] trans : homePage.getTransactionList()) {
@@ -122,6 +151,7 @@ public class TransactionPage extends JFrame {
         transactionTable.setDefaultRenderer(Object.class, new TransactionTableCellRenderer());
     }
 
+    // Custom cell renderer for the transaction table
     private class TransactionTableCellRenderer extends JLabel implements TableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
